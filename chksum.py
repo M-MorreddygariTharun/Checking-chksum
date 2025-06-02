@@ -157,6 +157,7 @@ def check_chksum_in_7z_files(base_url):
         sys.exit(1)  # Fail pipeline
     else:
         print("\n[SUCCESS] All .7z files contain 'chksum'.")
+        print("successfully verified all 7z files")
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
