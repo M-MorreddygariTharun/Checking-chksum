@@ -1,0 +1,58 @@
+name: CHKSUM Checker
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Base URL to scan (optional). If omitted, uses secret BASE_URL.'
+        required: false
+        default: ''
+  schedule:
+    # Runs daily at 20:00 IST (14:30 UTC)
+    - cron: '30 14 * * *'
+
+jobs:
+  run-chksum:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run chksum.py
+        env:
+          # required secrets (set these in repo Settings -> Secrets)
+          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
+          # Optional defaults (you can also provide BASE_URL as an input when manually triggering)
+          BASE_URL: ${{ secrets.BASE_URL }}
+          DOWNLOAD_FOLDER: ${{ secrets.DOWNLOAD_FOLDER }}
+        run: |
+          # Choose the URL: prefer manual input (workflow_dispatch), otherwise use secret BASE_URL
+          if [ -n "${{ github.event.inputs.base_url }}" ]; then
+            URL="${{ github.event.inputs.base_url }}"
+          else
+            URL="${BASE_URL}"
+          fi
+
+          if [ -z "$URL" ]; then
+            echo "ERROR: no base_url provided (as workflow input or BASE_URL secret)"
+            exit 2
+          fi
+
+          echo "Running chksum check for: $URL"
+          python chksum.py "$URL"
